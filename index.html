@@ -1,0 +1,971 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>まなびクエスト</title>
+<style>
+  :root {
+    --bg: #FEF9EF;
+    --card: #FFFFFF;
+    --ink: #2E2A24;
+    --sub: #8A8478;
+    --accent: #3B9E7A;
+    --accent-dark: #257A5C;
+    --wrong: #E2564A;
+    --border: #E9E2D3;
+    --radius: 18px;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: "Hiragino Maru Gothic ProN", "Rounded Mplus 1c", "Yu Gothic", sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    display: flex;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 24px 16px;
+  }
+  .app {
+    width: 100%;
+    max-width: 480px;
+  }
+  .brand {
+    text-align: center;
+    font-size: 22px;
+    font-weight: 700;
+    margin-bottom: 20px;
+    letter-spacing: 0.02em;
+  }
+  .brand span { color: var(--accent); }
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 28px 22px;
+    box-shadow: 0 2px 0 var(--border);
+  }
+  h2 { margin-top: 0; font-size: 18px; }
+  input[type="text"] {
+    width: 100%;
+    padding: 14px 16px;
+    font-size: 16px;
+    border: 2px solid var(--border);
+    border-radius: 12px;
+    margin: 10px 0 18px;
+    font-family: inherit;
+  }
+  button.primary {
+    width: 100%;
+    padding: 14px;
+    background: var(--accent);
+    color: white;
+    border: none;
+    border-radius: 12px;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  button.primary:disabled { background: #C9C2B2; cursor: not-allowed; }
+  button.primary:active { background: var(--accent-dark); }
+
+  .course-list { display: flex; flex-direction: column; gap: 12px; }
+  .course-card {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 16px;
+    border: 2px solid var(--border);
+    border-radius: 14px;
+    cursor: pointer;
+    background: var(--card);
+    text-align: left;
+  }
+  .course-card:active { border-color: var(--accent); }
+  .course-icon { font-size: 30px; }
+  .course-name { font-weight: 700; font-size: 16px; }
+  .course-sub { font-size: 12px; color: var(--sub); }
+
+  .progress-bar {
+    height: 8px;
+    background: var(--border);
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 18px;
+  }
+  .progress-fill {
+    height: 100%;
+    background: var(--accent);
+    transition: width 0.3s ease;
+  }
+
+  .question-text {
+    font-size: 17px;
+    font-weight: 700;
+    line-height: 1.6;
+    margin-bottom: 20px;
+  }
+  .choice-img { width: 100%; border-radius: 10px; margin-bottom: 16px; }
+  .compare-images {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+  .compare-images .choice-img {
+    margin-bottom: 0;
+    flex: 1;
+    min-width: 0;
+  }
+  .compare-label {
+    text-align: center;
+    font-size: 12px;
+    color: var(--sub);
+    margin-top: 4px;
+  }
+  .compare-col { flex: 1; min-width: 0; }
+  .choices { display: flex; flex-direction: column; gap: 10px; }
+  .choice-btn {
+    padding: 14px 16px;
+    border: 2px solid var(--border);
+    border-radius: 12px;
+    background: var(--card);
+    font-size: 15px;
+    text-align: left;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .choice-btn:active { border-color: var(--accent); }
+  .choice-btn.correct { border-color: var(--accent); background: #EAF6F0; color: var(--accent-dark); }
+  .choice-btn.wrong { border-color: var(--wrong); background: #FCECEA; color: var(--wrong); }
+  .choice-btn[disabled] { cursor: default; }
+
+  .feedback {
+    margin-top: 16px;
+    font-size: 15px;
+    font-weight: 700;
+    min-height: 22px;
+  }
+  .feedback.correct-text { color: var(--accent-dark); }
+  .feedback.wrong-text { color: var(--wrong); }
+
+  .result-score { font-size: 42px; font-weight: 700; text-align: center; margin: 10px 0; }
+  .result-sub { text-align: center; color: var(--sub); margin-bottom: 24px; }
+
+  .top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; font-size: 13px; color: var(--sub); }
+  .top-bar-links { display: flex; gap: 12px; }
+  .link-btn { background: none; border: none; color: var(--sub); text-decoration: underline; cursor: pointer; font-size: 13px; padding: 0; }
+  .hidden { display: none; }
+
+  @keyframes confetti-fall {
+    to { transform: translateY(110vh) rotate(360deg); opacity: 0.3; }
+  }
+
+  .profile-stats { display: flex; gap: 12px; margin: 18px 0; }
+  .stat-box {
+    flex: 1;
+    text-align: center;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 18px 8px;
+  }
+  .stat-num { font-size: 28px; font-weight: 700; color: var(--accent-dark); }
+  .stat-label { font-size: 12px; color: var(--sub); margin-top: 4px; }
+
+  .icon-btn {
+    background: none;
+    border: none;
+    color: var(--sub);
+    font-size: 16px;
+    cursor: pointer;
+    padding: 2px 6px;
+    line-height: 1;
+  }
+  .icon-btn:active { color: var(--wrong); }
+
+  .result-exp {
+    text-align: center;
+    font-weight: 700;
+    color: var(--accent-dark);
+    font-size: 16px;
+    margin-bottom: 6px;
+  }
+
+  .character-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    margin: 18px 0;
+  }
+  .character-photo {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid var(--border);
+    flex-shrink: 0;
+  }
+  .speech-bubble {
+    position: relative;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 12px 14px;
+    font-size: 14px;
+    line-height: 1.5;
+  }
+  .speech-bubble::before {
+    content: "";
+    position: absolute;
+    left: -8px;
+    top: 14px;
+    border-width: 6px 8px 6px 0;
+    border-style: solid;
+    border-color: transparent var(--border) transparent transparent;
+  }
+
+  #daily-greeting {
+    background: #FFF6DD;
+    border: 1px solid #F0DFA0;
+    border-radius: 12px;
+    padding: 12px 14px;
+    font-size: 14px;
+    font-weight: 700;
+    margin-bottom: 16px;
+    line-height: 1.5;
+  }
+
+  .tab-row { display: flex; gap: 8px; margin-bottom: 16px; }
+  .tab-btn {
+    flex: 1;
+    padding: 10px 4px;
+    border: 2px solid var(--border);
+    border-radius: 10px;
+    background: var(--card);
+    color: var(--sub);
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .tab-btn.active { border-color: var(--accent); color: var(--accent-dark); background: #EAF6F0; }
+
+  .rank-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .rank-row:last-child { border-bottom: none; }
+  .rank-row.me { background: #EAF6F0; border-radius: 10px; padding: 10px 8px; }
+  .rank-num { width: 22px; text-align: center; font-weight: 700; color: var(--sub); flex-shrink: 0; }
+  .rank-row.top1 .rank-num { color: #E0A800; }
+  .rank-name { flex-shrink: 0; width: 70px; font-size: 14px; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .rank-bar-wrap { flex: 1; background: var(--bg); border-radius: 6px; overflow: hidden; height: 14px; }
+  .rank-bar { height: 100%; background: var(--accent); border-radius: 6px; }
+  .rank-exp { flex-shrink: 0; font-size: 12px; color: var(--sub); width: 54px; text-align: right; }
+  .rank-gap { text-align: center; color: var(--sub); font-size: 13px; padding: 4px 0; }
+  .rank-empty { color: var(--sub); font-size: 14px; text-align: center; padding: 20px 0; }
+
+  .badge-list { display: flex; flex-direction: column; gap: 10px; }
+  .badge-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--bg);
+  }
+  .badge-item.locked { opacity: 0.4; }
+  .badge-icon { font-size: 22px; }
+  .badge-text { font-size: 13px; font-weight: 700; }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="brand">まなび<span>クエスト</span></div>
+
+  <!-- 画面1: 名前入力 -->
+  <div class="card" id="screen-login">
+    <h2>はじめまして!</h2>
+    <p style="color:var(--sub); font-size:14px;">ニックネームを入力してね</p>
+    <input type="text" id="nickname-input" placeholder="例: たろう" maxlength="12">
+    <button class="primary" onclick="handleLogin()">はじめる</button>
+  </div>
+
+  <!-- 画面2: コース選択 -->
+  <div class="card hidden" id="screen-courses">
+    <div class="top-bar">
+      <span id="welcome-text"></span>
+      <div class="top-bar-links">
+        <button class="link-btn" onclick="goToRanking()">ランキング</button>
+        <button class="link-btn" onclick="goToProfile()">プロフィール</button>
+        <button class="link-btn" onclick="switchUser()">ちがう人</button>
+      </div>
+    </div>
+    <div id="daily-greeting" class="hidden"></div>
+    <h2>コースをえらぼう</h2>
+    <div class="course-list" id="course-list"></div>
+  </div>
+
+  <!-- 画面2.5: プロフィール -->
+  <div class="card hidden" id="screen-profile">
+    <div class="top-bar">
+      <span></span>
+      <button class="link-btn" onclick="goToCourses()">もどる</button>
+    </div>
+    <h2 id="profile-name"></h2>
+    <div class="profile-stats">
+      <div class="stat-box">
+        <div class="stat-num" id="profile-correct">-</div>
+        <div class="stat-label">正解した問題数</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-num" id="profile-exp">-</div>
+        <div class="stat-label">EXP</div>
+      </div>
+    </div>
+    <h2 style="font-size:15px;">バッジ</h2>
+    <div class="badge-list" id="badge-list"></div>
+  </div>
+
+  <!-- 画面2.6: ランキング -->
+  <div class="card hidden" id="screen-ranking">
+    <div class="top-bar">
+      <span></span>
+      <button class="link-btn" onclick="goToCourses()">もどる</button>
+    </div>
+    <h2>ランキング</h2>
+    <div class="tab-row">
+      <button class="tab-btn" id="tab-all" onclick="switchRankingTab('all')">総合</button>
+      <button class="tab-btn" id="tab-weekly" onclick="switchRankingTab('weekly')">ウィークリー</button>
+      <button class="tab-btn" id="tab-daily" onclick="switchRankingTab('daily')">デイリー</button>
+    </div>
+    <div id="ranking-list"></div>
+  </div>
+
+  <!-- 画面3: クイズ -->
+  <div class="card hidden" id="screen-quiz">
+    <div class="top-bar">
+      <button class="icon-btn" onclick="handleRetire()" aria-label="やめる">✕</button>
+      <span id="quiz-course-name"></span>
+      <span id="quiz-progress-text"></span>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
+    <div id="quiz-image-wrap"></div>
+    <div class="question-text" id="question-text"></div>
+    <div class="choices" id="choices"></div>
+    <div class="feedback" id="feedback"></div>
+    <button class="primary hidden" id="next-btn" onclick="nextQuestion()">つぎへ</button>
+  </div>
+
+  <!-- 画面4: 結果 -->
+  <div class="card hidden" id="screen-result">
+    <h2 style="text-align:center;">おつかれさま!</h2>
+    <div class="result-score" id="result-score"></div>
+    <div class="result-exp" id="result-exp"></div>
+    <div class="result-sub" id="result-sub"></div>
+    <div id="result-character"></div>
+    <button class="primary" onclick="backToCourses()">コース一覧へ</button>
+  </div>
+</div>
+
+<script>
+/* =========================================================
+   GAS Web AppのデプロイURLをここに入れると、以降サンプルデータではなく
+   実際のスプレッドシートからコース・問題を取得するようになる。
+   空文字のままならサンプルデータで動作する(オフライン確認用)。
+   例: "https://script.google.com/macros/s/xxxxxxxx/exec"
+   ========================================================= */
+const GAS_URL = "";
+
+/* =========================================================
+   サンプルデータ(GAS_URLが未設定のときのフォールバック)
+   スプレッドシートの courses / problems シートと同じ列構成にしてある
+   ========================================================= */
+const SAMPLE_COURSES = [
+  { course_id: "prog",  course_name: "プログラミングコース", icon: "🎮", is_active: true },
+  { course_id: "video", course_name: "動画編集コース",       icon: "🎬", is_active: true },
+];
+
+const SAMPLE_PROBLEMS = [
+  { problem_id:"prog_001", course_id:"prog", question_text:"「にゃーと言う」ブロックを4回繰り返すブロックの中に入れました。実行すると何回表示される?", image_url:"", choices:["2回","3回","4回","5回"], correct_answer:2 },
+  { problem_id:"prog_002", course_id:"prog", question_text:"「ずっと」ブロックの中に処理を入れると、その処理はいつ止まる?", image_url:"", choices:["1回で止まる","10回で止まる","止まらない","エラーになる"], correct_answer:2 },
+  { problem_id:"prog_003", course_id:"prog", question_text:"「もし体力が0より小さいなら」の次に置くべき処理はどれ?", image_url:"", choices:["ゲームスタート","ゲームオーバー","得点を増やす","何もしない"], correct_answer:1 },
+  { problem_id:"prog_004", course_id:"prog", question_text:"得点を数える箱(変数)に最初に入れておく数字として正しいのは?", image_url:"", choices:["100","0","10","何も入れない"], correct_answer:1 },
+  { problem_id:"prog_005", course_id:"prog", question_text:"「もしライフが0いないなら」で条件が動かない。おかしいのはどこ?", image_url:"", choices:["ブロックの色","数字の0","比較の向き(小なり/大なり)","処理の中身"], correct_answer:2 },
+  { problem_id:"prog_006", course_id:"prog", question_text:"AとBのブロックは似ているけど1か所だけ違う。実行結果が変わるのはどっち?", image_url:"https://placehold.co/300x200?text=A", image_url_2:"https://placehold.co/300x200?text=B", choices:["Aだけ違う結果になる","Bだけ違う結果になる","どちらも同じ結果になる","どちらもエラーになる"], correct_answer:1 },
+  { problem_id:"video_001", course_id:"video", question_text:"動画編集で「カット」とは何をする作業?", image_url:"", choices:["音を大きくする","いらない部分を切り取る","色を変える","文字を入れる"], correct_answer:1 },
+  { problem_id:"video_002", course_id:"video", question_text:"テロップ(字幕)を画面に出す操作は、動画編集ソフトのどの機能を使う?", image_url:"", choices:["カット機能","テキスト機能","音量機能","再生機能"], correct_answer:1 },
+  { problem_id:"video_003", course_id:"video", question_text:"動画の最初に入れると視聴者を引きつけやすいものはどれ?", image_url:"", choices:["エンディング","クレジット","タイトル・つかみ","無音の場面"], correct_answer:2 },
+];
+
+/* =========================================================
+   アプリの状態
+   ========================================================= */
+let state = {
+  nickname: "",
+  courseId: "",
+  courseName: "",
+  mainQuestions: [],   // このコースの本来の出題(そのまま)
+  queue: [],           // 実際に出題していくキュー(あとで復習問題を追加する)
+  qIndex: 0,
+  correctMain: 0,      // 本編での正解数(表示用)
+  wrongPool: [],        // 本編で間違えた問題(復習ラウンド用、course_idごとにリセット)
+  bonusStarted: false,
+  bonusTotal: 0,
+  answered: false,
+  currentDisplayChoices: [],
+  currentCorrectDisplayIndex: -1,
+  sessionAnswers: [],   // このコース挑戦中の解答ログ(完走したときだけサーバーに送る)
+};
+
+function show(id) {
+  ["screen-login","screen-courses","screen-profile","screen-ranking","screen-quiz","screen-result"].forEach(s => {
+    document.getElementById(s).classList.toggle("hidden", s !== id);
+  });
+}
+
+function shuffle(arr) {
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function init() {
+  const saved = localStorage.getItem("manabi_nickname");
+  if (saved) {
+    state.nickname = saved;
+    goToCourses();
+  } else {
+    show("screen-login");
+  }
+}
+
+function handleLogin() {
+  const val = document.getElementById("nickname-input").value.trim();
+  if (!val) return;
+  state.nickname = val;
+  localStorage.setItem("manabi_nickname", val);
+  goToCourses();
+}
+
+function switchUser() {
+  localStorage.removeItem("manabi_nickname");
+  document.getElementById("nickname-input").value = "";
+  show("screen-login");
+}
+
+async function fetchCourses() {
+  if (!GAS_URL) return SAMPLE_COURSES.filter(c => c.is_active);
+  const res = await fetch(GAS_URL + "?action=courses");
+  return await res.json();
+}
+
+async function fetchProblems(courseId) {
+  if (!GAS_URL) return SAMPLE_PROBLEMS.filter(p => p.course_id === courseId);
+  const res = await fetch(GAS_URL + "?action=problems&course=" + encodeURIComponent(courseId));
+  return await res.json();
+}
+
+// このコースを完走したときにまとめて1回だけ送信する(退出時は呼ばない=記録もEXPも残らない)
+async function submitSession() {
+  if (!GAS_URL || state.sessionAnswers.length === 0) return { totalExp: 0 };
+  try {
+    const res = await fetch(GAS_URL, {
+      method: "POST",
+      body: JSON.stringify({
+        action: "submitSession",
+        studentId: state.nickname,
+        nickname: state.nickname,
+        courseId: state.courseId,
+        answers: state.sessionAnswers,
+      }),
+    });
+    return await res.json();
+  } catch (e) {
+    return { totalExp: 0 };
+  }
+}
+
+/* =========================================================
+   正解時、10%の確率でこの中からランダムに1つ再生する(先生の声などのmp3)。
+   GitHub Pagesの同じリポジトリ内にある音声ファイルへの相対パスを想定。
+   例: audio/フォルダを作って、その中にmp3を置く。
+   空配列のままなら何も再生しない(通常のピンポーン音だけになる)。
+   ========================================================= */
+const VOICE_CLIPS = [
+  // 例: "audio/seikai_01.mp3",
+  // 例: "audio/yarujanee.mp3",
+  // 例: "audio/ieei.mp3",
+];
+const VOICE_CHANCE = 0.1; // 10%
+
+function maybePlayVoiceClip() {
+  if (VOICE_CLIPS.length === 0) return;
+  if (Math.random() >= VOICE_CHANCE) return;
+  const clip = VOICE_CLIPS[Math.floor(Math.random() * VOICE_CLIPS.length)];
+  try {
+    const audio = new Audio(clip);
+    audio.volume = 0.9;
+    audio.play().catch(() => {}); // 自動再生が止められても無視(すでにタップ操作の中なので基本は再生される)
+  } catch (e) { /* 再生できない環境では無視 */ }
+}
+
+function playCorrectSound() {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const now = ctx.currentTime;
+    const notes = [880, 1174.66]; // ピン・ポーン
+    notes.forEach((freq, i) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = "sine";
+      osc.frequency.value = freq;
+      const t = now + i * 0.15;
+      gain.gain.setValueAtTime(0.0001, t);
+      gain.gain.exponentialRampToValueAtTime(0.3, t + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.3);
+      osc.connect(gain).connect(ctx.destination);
+      osc.start(t);
+      osc.stop(t + 0.35);
+    });
+  } catch (e) { /* オーディオが使えない環境では無視 */ }
+  // ピンポーンの少しあとに、10%の確率でボイスも重ねて再生
+  setTimeout(maybePlayVoiceClip, 250);
+}
+
+function playTone(ctx, freq, startTime, duration, volume) {
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+  osc.type = "square";
+  osc.frequency.value = freq;
+  gain.gain.setValueAtTime(0.0001, startTime);
+  gain.gain.exponentialRampToValueAtTime(volume, startTime + 0.02);
+  gain.gain.exponentialRampToValueAtTime(0.0001, startTime + duration);
+  osc.connect(gain).connect(ctx.destination);
+  osc.start(startTime);
+  osc.stop(startTime + duration + 0.05);
+}
+
+// 「パンパカパンパカパーーーン!」的なファンファーレ。コース完走のたびに毎回鳴らす。
+function playFanfare() {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const now = ctx.currentTime;
+    const notes = [523.25, 523.25, 659.25, 783.99]; // パン・パカ・パン・パカ
+    notes.forEach((freq, i) => playTone(ctx, freq, now + i * 0.13, 0.14, 0.25));
+    const chordStart = now + notes.length * 0.13 + 0.05;
+    [523.25, 659.25, 783.99, 1046.5].forEach(freq => playTone(ctx, freq, chordStart, 0.9, 0.18)); // ジャーン和音
+  } catch (e) { /* オーディオが使えない環境では無視 */ }
+}
+
+function launchConfetti() {
+  const colors = ["#3B9E7A", "#F2B705", "#E2564A", "#4A90D9", "#9B59B6"];
+  const container = document.createElement("div");
+  container.style.cssText = "position:fixed;inset:0;pointer-events:none;overflow:hidden;z-index:9999;";
+  document.body.appendChild(container);
+  for (let i = 0; i < 80; i++) {
+    const piece = document.createElement("div");
+    const size = 6 + Math.random() * 6;
+    piece.style.cssText = `
+      position:absolute;
+      top:-20px;
+      left:${Math.random() * 100}%;
+      width:${size}px;
+      height:${size * 0.4}px;
+      background:${colors[Math.floor(Math.random() * colors.length)]};
+      opacity:0.9;
+      transform:rotate(${Math.random() * 360}deg);
+      animation: confetti-fall ${2 + Math.random() * 1.5}s linear forwards;
+      animation-delay:${Math.random() * 0.3}s;
+    `;
+    container.appendChild(piece);
+  }
+  setTimeout(() => container.remove(), 4000);
+}
+
+/* =========================================================
+   コース完走後に表示する「先生キャラクター」の演出
+   TEACHER_PHOTOSに写真のURL(Driveの共有リンクでもOK、自動変換されます)を、
+   TEACHER_LINESにセリフを好きなだけ追加してください。空でも動作します(表示なし)。
+   ========================================================= */
+const TEACHER_PHOTOS = [
+  // 例: "https://drive.google.com/file/d/XXXXXXXX/view?usp=sharing",
+];
+const TEACHER_LINES = [
+  "よくがんばったね!先生も鼻高々だよ!",
+  "その調子その調子〜!次はもっと難しい問題いっちゃう?",
+  "おおっと、プログラミングの神が降りてきたな…!",
+  "まだまだ伸びしろしかない、末恐ろしい…!",
+  "先生、感動して机の下に隠れちゃったよ。",
+  "今日のMVPは間違いなく君だ!",
+];
+
+function clientConvertDriveLink(url) {
+  if (!url) return "";
+  const patterns = [/\/d\/([a-zA-Z0-9_-]+)/, /[?&]id=([a-zA-Z0-9_-]+)/];
+  for (const p of patterns) {
+    const m = String(url).match(p);
+    if (m) return "https://drive.google.com/thumbnail?id=" + m[1] + "&sz=w500";
+  }
+  return url;
+}
+
+function renderCharacter() {
+  const wrap = document.getElementById("result-character");
+  if (TEACHER_PHOTOS.length === 0) { wrap.innerHTML = ""; return; }
+  const photo = clientConvertDriveLink(TEACHER_PHOTOS[Math.floor(Math.random() * TEACHER_PHOTOS.length)]);
+  const line = TEACHER_LINES.length
+    ? TEACHER_LINES[Math.floor(Math.random() * TEACHER_LINES.length)]
+    : "";
+  wrap.innerHTML = `
+    <div class="character-row">
+      <img class="character-photo" src="${photo}">
+      <div class="speech-bubble">${line}</div>
+    </div>`;
+}
+
+/* =========================================================
+   ランキング画面(総合 / ウィークリー / デイリー)
+   ========================================================= */
+async function goToRanking() {
+  show("screen-ranking");
+  switchRankingTab("all");
+}
+
+async function switchRankingTab(period) {
+  ["all", "weekly", "daily"].forEach(p => {
+    document.getElementById("tab-" + p).classList.toggle("active", p === period);
+  });
+  const listEl = document.getElementById("ranking-list");
+  listEl.innerHTML = "<div class=\"rank-empty\">読みこみ中...</div>";
+
+  if (!GAS_URL) {
+    listEl.innerHTML = "<div class=\"rank-empty\">GAS未接続のため表示できません</div>";
+    return;
+  }
+  try {
+    const res = await fetch(GAS_URL + "?action=ranking&period=" + period + "&student=" + encodeURIComponent(state.nickname));
+    const data = await res.json();
+    renderRanking(data);
+  } catch (e) {
+    listEl.innerHTML = "<div class=\"rank-empty\">取得できませんでした</div>";
+  }
+}
+
+function renderRanking(data) {
+  const listEl = document.getElementById("ranking-list");
+  const top5 = data.top5 || [];
+  const me = data.me || null;
+
+  if (top5.length === 0) {
+    listEl.innerHTML = "<div class=\"rank-empty\">まだ記録がありません</div>";
+    return;
+  }
+
+  const maxExp = Math.max.apply(null, top5.map(r => r.exp).concat(me ? [me.exp] : [1]));
+  let html = "";
+  top5.forEach(r => { html += rankRowHtml(r, maxExp, r.student_id === state.nickname); });
+
+  const meInTop5 = me && top5.some(r => r.student_id === me.student_id);
+  if (me && !meInTop5) {
+    html += `<div class="rank-gap">・・・</div>`;
+    html += rankRowHtml(me, maxExp, true);
+  }
+
+  listEl.innerHTML = html;
+}
+
+function rankRowHtml(r, maxExp, isMe) {
+  const pct = Math.max(4, Math.round((r.exp / maxExp) * 100));
+  const topClass = r.rank === 1 ? " top1" : "";
+  const meClass = isMe ? " me" : "";
+  return `<div class="rank-row${topClass}${meClass}">
+    <div class="rank-num">${r.rank}</div>
+    <div class="rank-name">${escapeHtml(r.nickname || r.student_id)}</div>
+    <div class="rank-bar-wrap"><div class="rank-bar" style="width:${pct}%"></div></div>
+    <div class="rank-exp">${r.exp}EXP</div>
+  </div>`;
+}
+
+function escapeHtml(str) {
+  return String(str).replace(/[&<>"']/g, s => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[s]));
+}
+
+/* =========================================================
+   ホーム画面(コース選択画面)を開いたときの「きのうは◯位だったよ」メッセージ。
+   1日1回だけ表示する(localStorageで判定)。月曜日は先週分もあわせて表示する。
+   ========================================================= */
+function formatDateJst(date) {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return y + "-" + m + "-" + d;
+}
+
+async function checkDailyGreeting() {
+  const el = document.getElementById("daily-greeting");
+  el.classList.add("hidden");
+
+  const todayStr = formatDateJst(new Date());
+  const lastSeenKey = "manabi_last_seen_" + state.nickname;
+  if (localStorage.getItem(lastSeenKey) === todayStr) return; // 今日はもう見た
+  localStorage.setItem(lastSeenKey, todayStr);
+
+  if (!GAS_URL) return;
+
+  const messages = [];
+  try {
+    const res = await fetch(GAS_URL + "?action=yesterdayRank&student=" + encodeURIComponent(state.nickname));
+    const data = await res.json();
+    if (data.hasData) messages.push("きのうは" + data.rank + "位だったよ!おめでとう!今日もがんばるぞ!");
+  } catch (e) { /* 取れなければ何も表示しない */ }
+
+  if (new Date().getDay() === 1) { // 月曜日
+    try {
+      const res2 = await fetch(GAS_URL + "?action=lastWeekRank&student=" + encodeURIComponent(state.nickname));
+      const data2 = await res2.json();
+      if (data2.hasData) messages.push("先週は" + data2.rank + "位だったよ!すごい!");
+    } catch (e) { /* 取れなければ何も表示しない */ }
+  }
+
+  if (messages.length > 0) {
+    el.textContent = messages.join(" ");
+    el.classList.remove("hidden");
+  }
+}
+
+/* =========================================================
+   バッジ(実績)
+   ========================================================= */
+async function loadBadges() {
+  const el = document.getElementById("badge-list");
+  if (!GAS_URL) {
+    el.innerHTML = `<div class="badge-item locked"><span class="badge-icon">🔒</span><span class="badge-text">GAS未接続のため表示できません</span></div>`;
+    return;
+  }
+  el.innerHTML = `<div class="rank-empty">読みこみ中...</div>`;
+  try {
+    const res = await fetch(GAS_URL + "?action=badges&student=" + encodeURIComponent(state.nickname));
+    const data = await res.json();
+    el.innerHTML =
+      badgeItemHtml("🥇", "デイリー1位", data.dailyFirsts) +
+      badgeItemHtml("🏆", "ウィークリー1位", data.weeklyFirsts);
+  } catch (e) {
+    el.innerHTML = `<div class="badge-item locked"><span class="badge-icon">⚠️</span><span class="badge-text">取得エラー</span></div>`;
+  }
+}
+
+function badgeItemHtml(icon, label, count) {
+  const locked = !count;
+  return `<div class="badge-item${locked ? " locked" : ""}">
+    <span class="badge-icon">${icon}</span>
+    <span class="badge-text">${label}${locked ? "(未獲得)" : "を" + count + "回獲得!"}</span>
+  </div>`;
+}
+
+async function goToCourses() {
+  document.getElementById("welcome-text").textContent = state.nickname + "さん";
+  const list = document.getElementById("course-list");
+  list.innerHTML = "<div class=\"course-sub\">読みこみ中...</div>";
+  const courses = await fetchCourses();
+  list.innerHTML = "";
+  courses.filter(c => c.is_active === true || String(c.is_active).toUpperCase() === "TRUE").forEach(c => {
+    const div = document.createElement("button");
+    div.className = "course-card";
+    div.onclick = () => startCourse(c.course_id, c.course_name);
+    div.innerHTML = `<div class="course-icon">${c.icon}</div>
+      <div><div class="course-name">${c.course_name}</div>
+      <div class="course-sub">タップしてスタート</div></div>`;
+    list.appendChild(div);
+  });
+  show("screen-courses");
+  checkDailyGreeting();
+}
+
+async function startCourse(courseId, courseName) {
+  state.courseId = courseId;
+  state.courseName = courseName;
+  const problems = await fetchProblems(courseId);
+  state.mainQuestions = problems;
+  state.queue = problems.map(q => ({ ...q, bonus: false }));
+  state.qIndex = 0;
+  state.correctMain = 0;
+  state.wrongPool = [];
+  state.bonusStarted = false;
+  state.bonusTotal = 0;
+  state.sessionAnswers = [];
+  document.getElementById("quiz-course-name").textContent = courseName;
+  showQuestion();
+  show("screen-quiz");
+}
+
+function showQuestion() {
+  // キューを使い切ったら、復習ラウンドを差し込むか結果画面へ
+  if (state.qIndex >= state.queue.length) {
+    if (!state.bonusStarted && state.wrongPool.length > 0) {
+      const bonusQs = shuffle(state.wrongPool).slice(0, 3).map(q => ({ ...q, bonus: true }));
+      state.bonusStarted = true;
+      state.bonusTotal = bonusQs.length;
+      state.queue = state.queue.concat(bonusQs);
+    } else {
+      showResult();
+      return;
+    }
+  }
+
+  state.answered = false;
+  const q = state.queue[state.qIndex];
+
+  // 出題ラベル(本編 or 復習)
+  if (q.bonus) {
+    const bonusIndex = state.qIndex - state.mainQuestions.length + 1;
+    document.getElementById("quiz-progress-text").textContent = "復習 " + bonusIndex + " / " + state.bonusTotal;
+    document.getElementById("progress-fill").style.width = "100%";
+  } else {
+    document.getElementById("quiz-progress-text").textContent = (state.qIndex + 1) + " / " + state.mainQuestions.length;
+    document.getElementById("progress-fill").style.width = (state.qIndex / state.mainQuestions.length * 100) + "%";
+  }
+
+  document.getElementById("question-text").textContent = q.question_text;
+
+  const imgWrap = document.getElementById("quiz-image-wrap");
+  if (q.image_url && q.image_url_2) {
+    imgWrap.innerHTML = `<div class="compare-images">
+      <div class="compare-col"><img class="choice-img" src="${q.image_url}"><div class="compare-label">A</div></div>
+      <div class="compare-col"><img class="choice-img" src="${q.image_url_2}"><div class="compare-label">B</div></div>
+    </div>`;
+  } else if (q.image_url) {
+    imgWrap.innerHTML = `<img class="choice-img" src="${q.image_url}">`;
+  } else {
+    imgWrap.innerHTML = "";
+  }
+
+  // 選択肢の順番をシャッフル
+  const order = shuffle(q.choices.map((_, i) => i));
+  state.currentDisplayChoices = order.map(i => q.choices[i]);
+  state.currentCorrectDisplayIndex = order.indexOf(q.correct_answer);
+
+  const choicesEl = document.getElementById("choices");
+  choicesEl.innerHTML = "";
+  state.currentDisplayChoices.forEach((choiceText, i) => {
+    const btn = document.createElement("button");
+    btn.className = "choice-btn";
+    btn.textContent = choiceText;
+    btn.onclick = () => selectAnswer(i);
+    choicesEl.appendChild(btn);
+  });
+
+  document.getElementById("feedback").textContent = "";
+  document.getElementById("feedback").className = "feedback";
+  document.getElementById("next-btn").classList.add("hidden");
+}
+
+function selectAnswer(i) {
+  if (state.answered) return;
+  state.answered = true;
+  const q = state.queue[state.qIndex];
+  const isCorrect = i === state.currentCorrectDisplayIndex;
+  const buttons = document.querySelectorAll(".choice-btn");
+  const feedback = document.getElementById("feedback");
+
+  buttons.forEach((b, idx) => {
+    b.disabled = true;
+    if (idx === state.currentCorrectDisplayIndex) b.classList.add("correct");
+    if (idx === i && !isCorrect) b.classList.add("wrong");
+  });
+
+  if (isCorrect) {
+    if (!q.bonus) state.correctMain++;
+    feedback.textContent = "せいかい!";
+    feedback.className = "feedback correct-text";
+    playCorrectSound();
+  } else {
+    feedback.textContent = "おしい、正解は「" + state.currentDisplayChoices[state.currentCorrectDisplayIndex] + "」";
+    feedback.className = "feedback wrong-text";
+    if (!q.bonus && !state.wrongPool.some(w => w.problem_id === q.problem_id)) {
+      state.wrongPool.push(q);
+    }
+  }
+
+  // サーバーへはコース完走時にまとめて送るので、ここではログに積むだけ(即座に次へ進める)
+  state.sessionAnswers.push({ problemId: q.problem_id, isCorrect });
+
+  document.getElementById("next-btn").classList.remove("hidden");
+}
+
+function nextQuestion() {
+  state.qIndex++;
+  showQuestion();
+}
+
+async function showResult() {
+  document.getElementById("progress-fill").style.width = "100%";
+  document.getElementById("result-score").textContent = state.correctMain + " / " + state.mainQuestions.length;
+
+  let subText = state.courseName + "、おつかれさま!";
+  if (state.bonusStarted) subText += "(間違えた問題の復習もできたね)";
+  if (!state.bonusStarted && state.correctMain === state.mainQuestions.length) subText += " パーフェクト!!";
+  document.getElementById("result-sub").textContent = subText;
+
+  document.getElementById("result-exp").textContent = "けいけんち けいさんちゅう…";
+  renderCharacter();
+
+  // どんな結果でも盛大に祝う
+  launchConfetti();
+  playFanfare();
+
+  show("screen-result");
+
+  const { totalExp } = await submitSession();
+  document.getElementById("result-exp").textContent = GAS_URL
+    ? "合計 " + (totalExp || 0) + " EXP かくとく!"
+    : "EXP: -(GAS未接続のため未記録)";
+}
+
+async function goToProfile() {
+  document.getElementById("profile-name").textContent = state.nickname + "さんのプロフィール";
+  document.getElementById("profile-correct").textContent = "…";
+  document.getElementById("profile-exp").textContent = "…";
+  show("screen-profile");
+  loadBadges();
+
+  if (!GAS_URL) {
+    document.getElementById("profile-correct").textContent = "-";
+    document.getElementById("profile-exp").textContent = "-";
+    return;
+  }
+  try {
+    const res = await fetch(GAS_URL + "?action=stats&student=" + encodeURIComponent(state.nickname));
+    const data = await res.json();
+    document.getElementById("profile-correct").textContent = data.totalCorrectProblems;
+    document.getElementById("profile-exp").textContent = data.totalExp;
+  } catch (e) {
+    document.getElementById("profile-correct").textContent = "取得エラー";
+    document.getElementById("profile-exp").textContent = "取得エラー";
+  }
+}
+
+// 途中でやめる。ここまでの解答ログは一切送信しないので、EXP・記録は残らない。
+function handleRetire() {
+  const ok = confirm("ここでやめると、ここまでのけいけんちはなくなるよ。やめる?");
+  if (!ok) return;
+  state.sessionAnswers = [];
+  goToCourses();
+}
+
+function backToCourses() {
+  goToCourses();
+}
+
+init();
+</script>
+</body>
+</html>
