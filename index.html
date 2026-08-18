@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ヨッシーラボクエスト</title>
+<title>まなびクエスト</title>
 <style>
   :root {
     --bg: #FEF9EF;
@@ -86,6 +86,18 @@
   .course-icon { font-size: 30px; }
   .course-name { font-weight: 700; font-size: 16px; }
   .course-sub { font-size: 12px; color: var(--sub); }
+
+  /* 未挑戦は今まで通りの灰色っぽい配色(デフォルトのまま) */
+  .course-card.status-cleared {
+    border-color: var(--accent);
+    background: #EAF6F0;
+  }
+  .course-card.status-cleared .course-sub { color: var(--accent-dark); font-weight: 700; }
+  .course-card.status-perfect {
+    border-color: #E0A800;
+    background: linear-gradient(135deg, #FFF8E1, #FFF1C4);
+  }
+  .course-card.status-perfect .course-sub { color: #8A6D1E; font-weight: 700; }
 
   .progress-bar {
     height: 8px;
@@ -286,7 +298,7 @@
 </head>
 <body>
 <div class="app">
-  <div class="brand">ヨッシーラボ<span>クエスト</span></div>
+  <div class="brand">まなび<span>クエスト</span></div>
 
   <!-- 画面1: 名前入力 -->
   <div class="card" id="screen-login">
@@ -475,7 +487,7 @@ async function fetchProblems(courseId) {
 }
 
 // このコースを完走したときにまとめて1回だけ送信する(退出時は呼ばない=記録もEXPも残らない)
-async function submitSession() {
+async function submitSession(isPerfect) {
   if (!GAS_URL || state.sessionAnswers.length === 0) return { totalExp: 0 };
   try {
     const res = await fetch(GAS_URL, {
@@ -485,6 +497,7 @@ async function submitSession() {
         studentId: state.nickname,
         nickname: state.nickname,
         courseId: state.courseId,
+        perfect: !!isPerfect,
         answers: state.sessionAnswers,
       }),
     });
@@ -597,14 +610,14 @@ function launchConfetti() {
    TEACHER_LINESにセリフを好きなだけ追加してください。空でも動作します(表示なし)。
    ========================================================= */
 const TEACHER_PHOTOS = [
-  "https://drive.google.com/file/d/1b9Y6RgOl0D4F2WmVcXVoQ_aOCCdt9Mfe/view?usp=sharing",
+  // 例: "https://drive.google.com/file/d/XXXXXXXX/view?usp=sharing",
 ];
 const TEACHER_LINES = [
-  "先生はちゃんと見たぜ、君がこっそり頑張っているところ👊😎",
-  "こんなに解いたの！？もしかして、努力の天才？🧐✨",
-  "間違ってもいいさ！間違えないと人間は成長しないんだもの😆",
-  "勉強ができることも大切だけど、どんな自分でいたいかも忘れないで！✍️☺️",
-  "こんなに頑張ってくれてうれしいよ！ありがとうね！🥰🙌",
+  "よくがんばったね!先生も鼻高々だよ!",
+  "その調子その調子〜!次はもっと難しい問題いっちゃう?",
+  "おおっと、プログラミングの神が降りてきたな…!",
+  "まだまだ伸びしろしかない、末恐ろしい…!",
+  "先生、感動して机の下に隠れちゃったよ。",
   "今日のMVPは間違いなく君だ!",
 ];
 
@@ -771,19 +784,38 @@ function badgeItemHtml(icon, label, count) {
   </div>`;
 }
 
+async function fetchCourseStatus() {
+  if (!GAS_URL) return {};
+  try {
+    const res = await fetch(GAS_URL + "?action=courseStatus&student=" + encodeURIComponent(state.nickname));
+    return await res.json();
+  } catch (e) {
+    return {};
+  }
+}
+
 async function goToCourses() {
   document.getElementById("welcome-text").textContent = state.nickname + "さん";
   const list = document.getElementById("course-list");
   list.innerHTML = "<div class=\"course-sub\">読みこみ中...</div>";
-  const courses = await fetchCourses();
+  const [courses, courseStatus] = await Promise.all([fetchCourses(), fetchCourseStatus()]);
   list.innerHTML = "";
   courses.filter(c => c.is_active === true || String(c.is_active).toUpperCase() === "TRUE").forEach(c => {
+    const status = courseStatus[c.course_id] || { cleared: false, perfect: false };
     const div = document.createElement("button");
     div.className = "course-card";
+    let subLabel = "タップしてスタート";
+    if (status.perfect) {
+      div.classList.add("status-perfect");
+      subLabel = "🏆 パーフェクトクリア済み";
+    } else if (status.cleared) {
+      div.classList.add("status-cleared");
+      subLabel = "✓ クリア済み・もう一度挑戦する?";
+    }
     div.onclick = () => startCourse(c.course_id, c.course_name);
     div.innerHTML = `<div class="course-icon">${c.icon}</div>
       <div><div class="course-name">${c.course_name}</div>
-      <div class="course-sub">タップしてスタート</div></div>`;
+      <div class="course-sub">${subLabel}</div></div>`;
     list.appendChild(div);
   });
   show("screen-courses");
@@ -910,9 +942,11 @@ async function showResult() {
   document.getElementById("progress-fill").style.width = "100%";
   document.getElementById("result-score").textContent = state.correctMain + " / " + state.mainQuestions.length;
 
+  const isPerfect = !state.bonusStarted && state.correctMain === state.mainQuestions.length;
+
   let subText = state.courseName + "、おつかれさま!";
   if (state.bonusStarted) subText += "(間違えた問題の復習もできたね)";
-  if (!state.bonusStarted && state.correctMain === state.mainQuestions.length) subText += " パーフェクト!!";
+  if (isPerfect) subText += " パーフェクト!!";
   document.getElementById("result-sub").textContent = subText;
 
   document.getElementById("result-exp").textContent = "けいけんち けいさんちゅう…";
@@ -924,7 +958,7 @@ async function showResult() {
 
   show("screen-result");
 
-  const { totalExp } = await submitSession();
+  const { totalExp } = await submitSession(isPerfect);
   document.getElementById("result-exp").textContent = GAS_URL
     ? "合計 " + (totalExp || 0) + " EXP かくとく!"
     : "EXP: -(GAS未接続のため未記録)";
@@ -955,7 +989,7 @@ async function goToProfile() {
 
 // 途中でやめる。ここまでの解答ログは一切送信しないので、EXP・記録は残らない。
 function handleRetire() {
-  const ok = confirm("ここでやめると、ここまでの経験値（EXP）はなくなるよ。やめる?");
+  const ok = confirm("ここでやめると、ここまでのけいけんちはなくなるよ。やめる?");
   if (!ok) return;
   state.sessionAnswers = [];
   goToCourses();
