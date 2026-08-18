@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>まなびクエスト</title>
+<title>ヨッシーラボクエスト</title>
 <style>
   :root {
     --bg: #FEF9EF;
@@ -298,7 +298,7 @@
 </head>
 <body>
 <div class="app">
-  <div class="brand">まなび<span>クエスト</span></div>
+  <div class="brand">ヨッシーラボ<span>クエスト</span></div>
 
   <!-- 画面1: 名前入力 -->
   <div class="card" id="screen-login">
@@ -352,7 +352,6 @@
     </div>
     <h2>ランキング</h2>
     <div class="tab-row">
-      <button class="tab-btn" id="tab-all" onclick="switchRankingTab('all')">総合</button>
       <button class="tab-btn" id="tab-weekly" onclick="switchRankingTab('weekly')">ウィークリー</button>
       <button class="tab-btn" id="tab-daily" onclick="switchRankingTab('daily')">デイリー</button>
     </div>
@@ -392,7 +391,7 @@
    空文字のままならサンプルデータで動作する(オフライン確認用)。
    例: "https://script.google.com/macros/s/xxxxxxxx/exec"
    ========================================================= */
-const GAS_URL = "https://script.google.com/macros/s/AKfycbw0Ccijp49lDRKa_hyolAqhms5OiV_v2RO0Z3nx8r7NQEZ1PkfoBQE1WpZV9qT9J-n3/exec";
+const GAS_URL = "";
 
 /* =========================================================
    サンプルデータ(GAS_URLが未設定のときのフォールバック)
@@ -646,15 +645,15 @@ function renderCharacter() {
 }
 
 /* =========================================================
-   ランキング画面(総合 / ウィークリー / デイリー)
+   ランキング画面(ウィークリー / デイリー)
    ========================================================= */
 async function goToRanking() {
   show("screen-ranking");
-  switchRankingTab("all");
+  switchRankingTab("weekly");
 }
 
 async function switchRankingTab(period) {
-  ["all", "weekly", "daily"].forEach(p => {
+  ["weekly", "daily"].forEach(p => {
     document.getElementById("tab-" + p).classList.toggle("active", p === period);
   });
   const listEl = document.getElementById("ranking-list");
