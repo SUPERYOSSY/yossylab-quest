@@ -473,12 +473,6 @@ function switchUser() {
   show("screen-login");
 }
 
-async function fetchCourses() {
-  if (!GAS_URL) return SAMPLE_COURSES.filter(c => c.is_active);
-  const res = await fetch(GAS_URL + "?action=courses");
-  return await res.json();
-}
-
 async function fetchProblems(courseId) {
   if (!GAS_URL) return SAMPLE_PROBLEMS.filter(p => p.course_id === courseId);
   const res = await fetch(GAS_URL + "?action=problems&course=" + encodeURIComponent(courseId));
@@ -783,13 +777,18 @@ function badgeItemHtml(icon, label, count) {
   </div>`;
 }
 
-async function fetchCourseStatus() {
-  if (!GAS_URL) return {};
+async function fetchHomeData() {
+  if (!GAS_URL) {
+    return {
+      courses: SAMPLE_COURSES.filter(c => c.is_active),
+      courseStatus: {},
+    };
+  }
   try {
-    const res = await fetch(GAS_URL + "?action=courseStatus&student=" + encodeURIComponent(state.nickname));
+    const res = await fetch(GAS_URL + "?action=home&student=" + encodeURIComponent(state.nickname));
     return await res.json();
   } catch (e) {
-    return {};
+    return { courses: [], courseStatus: {} };
   }
 }
 
@@ -797,7 +796,7 @@ async function goToCourses() {
   document.getElementById("welcome-text").textContent = state.nickname + "さん";
   const list = document.getElementById("course-list");
   list.innerHTML = "<div class=\"course-sub\">読みこみ中...</div>";
-  const [courses, courseStatus] = await Promise.all([fetchCourses(), fetchCourseStatus()]);
+  const { courses, courseStatus } = await fetchHomeData();
   list.innerHTML = "";
   courses.filter(c => c.is_active === true || String(c.is_active).toUpperCase() === "TRUE").forEach(c => {
     const status = courseStatus[c.course_id] || { cleared: false, perfect: false };
